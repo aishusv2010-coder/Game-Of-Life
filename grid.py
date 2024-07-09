@@ -1,8 +1,10 @@
 import tkinter as tk
+import time
 
 # Initialize main application window
 root = tk.Tk()
 root.title("Binary Button Grid")
+play = False
 
 # Define grid size
 rows, cols = 100, 100
@@ -13,108 +15,61 @@ max_height = 600
 root.maxsize(max_width, max_height)
 
 # Initialize a 2D list to track button states (0 for off, 1 for on)
-button_states = []
-for r in range(rows):
-    rows2 = []
-    for c in range(cols):
-        rows2.append(0)
-    button_states.append(rows2)
+button_states = [[0 for _ in range(cols)] for _ in range(rows)]
 
 # Function to check neighbors and print if they have the same state
 def transfer_button_states():
-    next_gen = []
-    for r in range(rows):
-        rows2 = []
-        for c in range(cols):
-            rows2.append(0)
-        next_gen.append(rows2)
-        # make the next frame the next generation will go on
-
-
+    next_gen = [[0 for _ in range(cols)] for _ in range(rows)]
 
     for r in range(rows):
         for c in range(cols):
             current_state = button_states[r][c]
-            on = 1
-            neighbors = []
-            #checking neighbors
-            if c > 0:
-                neighbors.append(button_states[r][c-1])
-            if r > 0:
-                neighbors.append(button_states[r-1][c])
-            if c < cols - 1:
-                neighbors.append(button_states[r][c+1])
-            if r < rows - 1:
-                neighbors.append(button_states[r+1][c])
-            if r > 0 and c > 0:
-                neighbors.append(button_states[r-1][c-1])
-            if c < cols - 1 and r < rows - 1:
-                neighbors.append(button_states[r+1][c+1])
-            if c > 0 and r < rows - 1:
-                neighbors.append(button_states[r+1][c-1])
-            if r > 0 and c < cols - 1:
-                neighbors.append(button_states[r-1][c+1])
-
-
+            neighbors = [
+                button_states[r + dr][c + dc]
+                for dr, dc in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+                if 0 <= r + dr < rows and 0 <= c + dc < cols
+            ]
 
             if current_state == 1:
-                if neighbors.count(1) == 1 or neighbors.count(1) == 0:
-                    next_gen[r][c] = 0
-                if neighbors.count(1) >= 4:
-                    next_gen[r][c] = 0
-                if neighbors.count(1) == 2 or neighbors.count(1) == 3:
+                if neighbors.count(1) in [2, 3]:
                     next_gen[r][c] = 1
-
-            if current_state == 0:
+                else:
+                    next_gen[r][c] = 0
+            else:
                 if neighbors.count(1) == 3:
                     next_gen[r][c] = 1
 
+    redraw_grid(next_gen)
 
-    redraw_grid(next_gen, neighbors)
+def play_button():
+    global play
+    play = not play
+    play_button_widget.config(text="Stop" if play else "Play")
+    if play:
+        play_loop()
 
+def play_loop():
+    if play:
+        transfer_button_states()
+        root.after(500, play_loop)  # Schedule the next update in 500 ms (0.5 seconds)
 
-
-
-
-
-def redraw_grid(new_grid, neighbors):
-    # redraw the new grid in tkinter
-    # make button_states show up on button_grid
+def redraw_grid(new_grid):
     for r in range(rows):
         for c in range(cols):
-            button_grid.append(button_states[r][c])
-            if new_grid[r][c] == 1:
-                button_states[r][c] = 1
-                backround = '#FF0000'
-                foreground = '#FF0000'
-            if new_grid[r][c] == 0:
-                button_states[r][c] = 0
-                backround = '#FFFFFF'
-                foreground = '#FFFFFF'
-                if neighbors.count(1) == 3:
-                    backround = '#FF0000'
-                    foreground = '#FF0000'
-
-
-
-
-            
-            button_grid[r][c].config(bg = backround, fg = foreground)
-
-            
-
+            button_states[r][c] = new_grid[r][c]
+            background = '#FF0000' if new_grid[r][c] == 1 else '#FFFFFF'
+            foreground = '#FF0000' if new_grid[r][c] == 1 else '#FFFFFF'
+            button_grid[r][c].config(bg=background, fg=foreground)
 
 # Function to create a toggle function for a specific button
 def create_toggle_function(row, col):
     def toggle_button():
-
         current_state = button_states[row][col]
         new_state = 1 - current_state
         button_states[row][col] = new_state
         background = '#FF0000' if new_state == 1 else '#FFFFFF'
         foreground = '#FF0000' if new_state == 1 else '#FFFFFF'
         button_grid[row][col].config(text=str(new_state), bg=background, fg=foreground)
-        # Force update the GUI to reflect changes immediately
         button_grid[row][col].update_idletasks()
     return toggle_button
 
@@ -140,38 +95,33 @@ button_grid = [[None for _ in range(cols)] for _ in range(rows)]
 # Create buttons and place them in the frame
 for r in range(rows):
     for c in range(cols):
-         button_grid[r][c] = tk.Checkbutton(frame, text="0", width=2, height=1, indicatoron=0, bg='white', activebackground='white', selectcolor='white', fg='white', command=create_toggle_function(r, c))
-         button_grid[r][c].grid(row=r, column=c, padx=0, pady=0)
-
+        button_grid[r][c] = tk.Checkbutton(
+            frame, text="0", width=2, height=1, indicatoron=0, bg='white', activebackground='white',
+            selectcolor='white', fg='white', command=create_toggle_function(r, c)
+        )
+        button_grid[r][c].grid(row=r, column=c, padx=0, pady=0)
 
 # Update the canvas scroll region
 frame.update_idletasks()
 canvas.config(scrollregion=canvas.bbox("all"))
 
 # Create the "Next" button outside the scrollable area
-button = tk.Button(root,
-                   text="Next",
-                   command=transfer_button_states,
-                   activebackground="blue",
-                   activeforeground="white",
-                   anchor="center",
-                   bd=3,
-                   bg="lightgray",
-                   cursor="hand2",
-                   disabledforeground="gray",
-                   fg="black",
-                   font=("Arial", 12),
-                   height=2,
-                   highlightbackground="black",
-                   highlightcolor="green",
-                   highlightthickness=2,
-                   justify="center",
-                   overrelief="raised",
-                   padx=10,
-                   pady=5,
-                   width=15,
-                   wraplength=100)
+button = tk.Button(
+    root, text="Next", command=transfer_button_states, activebackground="blue", activeforeground="white",
+    anchor="center", bd=3, bg="lightgray", cursor="hand2", disabledforeground="gray", fg="black",
+    font=("Arial", 12), height=2, highlightbackground="black", highlightcolor="green", highlightthickness=2,
+    justify="center", overrelief="raised", padx=10, pady=5, width=15, wraplength=100
+)
 button.grid(row=2, column=0, columnspan=2, pady=10)
+
+# Create the "Play" button outside the scrollable area
+play_button_widget = tk.Button(
+    root, text="Play", command=play_button, activebackground="blue", activeforeground="white", anchor="center",
+    bd=3, bg="lightgray", cursor="hand2", disabledforeground="gray", fg="black", font=("Arial", 12), height=2,
+    highlightbackground="black", highlightcolor="green", highlightthickness=2, justify="center", overrelief="raised",
+    padx=10, pady=5, width=15, wraplength=100
+)
+play_button_widget.grid(row=5, column=0, columnspan=2, pady=10)
 
 # Configure grid to expand properly
 root.grid_rowconfigure(0, weight=1)
