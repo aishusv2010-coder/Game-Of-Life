@@ -13,11 +13,101 @@ max_height = 600
 root.maxsize(max_width, max_height)
 
 # Initialize a 2D list to track button states (0 for off, 1 for on)
-button_states = [[0 for _ in range(cols)] for _ in range(rows)]
+button_states = []
+for r in range(rows):
+    rows2 = []
+    for c in range(cols):
+        rows2.append(0)
+    button_states.append(rows2)
+
+# Function to check neighbors and print if they have the same state
+def transfer_button_states():
+    next_gen = []
+    for r in range(rows):
+        rows2 = []
+        for c in range(cols):
+            rows2.append(0)
+        next_gen.append(rows2)
+        # make the next frame the next generation will go on
+
+
+
+    for r in range(rows):
+        for c in range(cols):
+            current_state = button_states[r][c]
+            on = 1
+            neighbors = []
+            #checking neighbors
+            if c > 0:
+                neighbors.append(button_states[r][c-1])
+            if r > 0:
+                neighbors.append(button_states[r-1][c])
+            if c < cols - 1:
+                neighbors.append(button_states[r][c+1])
+            if r < rows - 1:
+                neighbors.append(button_states[r+1][c])
+            if r > 0 and c > 0:
+                neighbors.append(button_states[r-1][c-1])
+            if c < cols - 1 and r < rows - 1:
+                neighbors.append(button_states[r+1][c+1])
+            if c > 0 and r < rows - 1:
+                neighbors.append(button_states[r+1][c-1])
+            if r > 0 and c < cols - 1:
+                neighbors.append(button_states[r-1][c+1])
+
+
+
+            if current_state == 1:
+                if neighbors.count(1) == 1 or neighbors.count(1) == 0:
+                    next_gen[r][c] = 0
+                if neighbors.count(1) >= 4:
+                    next_gen[r][c] = 0
+                if neighbors.count(1) == 2 or neighbors.count(1) == 3:
+                    next_gen[r][c] = 1
+
+            if current_state == 0:
+                if neighbors.count(1) == 3:
+                    next_gen[r][c] = 1
+
+
+    redraw_grid(next_gen, neighbors)
+
+
+
+
+
+
+def redraw_grid(new_grid, neighbors):
+    # redraw the new grid in tkinter
+    # make button_states show up on button_grid
+    for r in range(rows):
+        for c in range(cols):
+            button_grid.append(button_states[r][c])
+            if new_grid[r][c] == 1:
+                button_states[r][c] = 1
+                backround = '#FF0000'
+                foreground = '#FF0000'
+            if new_grid[r][c] == 0:
+                button_states[r][c] = 0
+                backround = '#FFFFFF'
+                foreground = '#FFFFFF'
+                if neighbors.count(1) == 3:
+                    backround = '#FF0000'
+                    foreground = '#FF0000'
+
+
+
+
+            
+            button_grid[r][c].config(bg = backround, fg = foreground)
+
+            
+
 
 # Function to create a toggle function for a specific button
 def create_toggle_function(row, col):
     def toggle_button():
+
         current_state = button_states[row][col]
         new_state = 1 - current_state
         button_states[row][col] = new_state
@@ -42,7 +132,7 @@ canvas.config(xscrollcommand=h_scrollbar.set, yscrollcommand=v_scrollbar.set)
 
 # Create a frame inside the canvas
 frame = tk.Frame(canvas)
-canvas.create_window((0,0), window=frame, anchor='nw')
+canvas.create_window((0, 0), window=frame, anchor='nw')
 
 # Create a 2D list to store button widgets
 button_grid = [[None for _ in range(cols)] for _ in range(rows)]
@@ -50,18 +140,19 @@ button_grid = [[None for _ in range(cols)] for _ in range(rows)]
 # Create buttons and place them in the frame
 for r in range(rows):
     for c in range(cols):
-        button_grid[r][c] = tk.Checkbutton(frame, text="0", width=2, height=1, indicatoron=0, bg='white', activebackground='white', selectcolor='white', fg='white', command=create_toggle_function(r, c))
-        button_grid[r][c].grid(row=r, column=c, padx=0, pady=0)
+         button_grid[r][c] = tk.Checkbutton(frame, text="0", width=2, height=1, indicatoron=0, bg='white', activebackground='white', selectcolor='white', fg='white', command=create_toggle_function(r, c))
+         button_grid[r][c].grid(row=r, column=c, padx=0, pady=0)
+
 
 # Update the canvas scroll region
 frame.update_idletasks()
 canvas.config(scrollregion=canvas.bbox("all"))
 
-# Create the "Click Me" button outside the scrollable area
-button = tk.Button(root, 
-                   text="Next", 
-                   command=button_func,
-                   activebackground="blue", 
+# Create the "Next" button outside the scrollable area
+button = tk.Button(root,
+                   text="Next",
+                   command=transfer_button_states,
+                   activebackground="blue",
                    activeforeground="white",
                    anchor="center",
                    bd=3,
